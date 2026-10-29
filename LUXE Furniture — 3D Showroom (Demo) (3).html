@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LUXE Furniture — 3D Showroom (Demo)</title>
+<style>
+:root{--bg:#f6f1ea;--card:#fff;--ink:#241d17;--mute:#7a6d60;--gold:#b08d57;--line:#e4dccf;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;line-height:1.5}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+.logo{font-weight:700;letter-spacing:.2em;font-size:18px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer}
+.demo{background:var(--gold);color:#fff;text-align:center;font-size:12px;padding:6px}
+h1{font-size:clamp(26px,6vw,44px);margin:12px 0 4px;line-height:1.15}
+.sub{color:var(--mute);margin:0 0 14px}
+.stage{position:relative;background:radial-gradient(ellipse at 50% 35%,var(--card),var(--bg));border:1px solid var(--line);border-radius:20px;overflow:hidden}
+canvas{display:block;width:100%;height:min(50vh,400px);touch-action:none;cursor:grab}
+.hint{position:absolute;bottom:8px;inset-inline:0;text-align:center;font-size:12px;color:var(--mute);pointer-events:none}
+.sw{display:flex;gap:12px;justify-content:center;align-items:center;padding:14px;flex-wrap:wrap}
+.sw button{width:38px;height:38px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.sw button.on{box-shadow:0 0 0 2px var(--gold)}
+#cname{font-size:14px;color:var(--mute);min-width:90px;text-align:center}
+.cta{display:flex;gap:10px;margin:16px 0}
+.cta a{flex:1;text-align:center;background:#1f9d55;color:#fff;text-decoration:none;padding:14px;border-radius:14px;font-weight:600}
+h2{margin:28px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.p{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.p b{display:block;font-size:17px}.p span{color:var(--mute);font-size:14px}
+.price{color:var(--gold);font-weight:700;margin-top:8px;display:block}
+footer{color:var(--mute);font-size:12px;text-align:center;padding:24px 0 32px}
+</style>
+</head>
+<body>
+<div class="demo" id="demo"></div>
+<div class="wrap">
+<header><div class="logo">LUXE</div><button class="btn" id="lang">العربية</button></header>
+<h1 id="t1"></h1><p class="sub" id="t2"></p>
+<div class="stage"><canvas id="c" role="img" aria-label="3D sofa viewer"></canvas><div class="hint" id="hint"></div></div>
+<div class="sw" id="sw"></div>
+<div class="cta"><a id="wa" href="#" target="_blank" rel="noopener"></a></div>
+<h2 id="t3"></h2>
+<div class="grid" id="grid"></div>
+<footer id="foot"></footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+var PHONE=""; // ضع رقم WhatsApp الدولي هنا بدون + (مثال: 9665XXXXXXXX)
+var T={
+en:{demo:"DEMO — fictional brand for presentation only. Not a real store.",t1:"The Milan Sofa",t2:"Handcrafted comfort. Pick a color and rotate it.",hint:"Drag to rotate",wa:"Order via WhatsApp",t3:"Collection",foot:"© LUXE Furniture — fictional demo. Prices are samples.",
+ cols:["Sand","Olive","Navy","Terracotta","Charcoal"],ps:[["Milan","3-seater sofa","$1,290"],["Oslo","2-seater sofa","$890"],["Roma","Corner sofa","$1,790"]],msg:"Hello, I’d like to order the Milan Sofa in "},
+ar:{demo:"نموذج تجريبي — علامة افتراضية للعرض فقط وليست متجرًا حقيقيًا.",t1:"أريكة ميلان",t2:"راحة بصنعة متقنة. اختر اللون وأدرها بإصبعك.",hint:"اسحب للتدوير",wa:"اطلب عبر واتساب",t3:"المجموعة",foot:"© LUXE Furniture — نموذج افتراضي. الأسعار تقريبية للعرض.",
+ cols:["رملي","زيتي","كحلي","طوبي","فحمي"],ps:[["ميلان","أريكة ثلاثية","١٬٢٩٠ $"],["أوسلو","أريكة ثنائية","٨٩٠ $"],["روما","أريكة زاوية","١٬٧٩٠ $"]],msg:"مرحبًا، أرغب بطلب أريكة ميلان بلون "}
+};
+var COL=[0xc9b497,0x6b7048,0x24344d,0xb5603c,0x3a3a3c],ci=0,lang="en";
+function $(i){return document.getElementById(i)}
+function render(){
+ var d=T[lang];document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";
+ $("demo").textContent=d.demo;$("t1").textContent=d.t1;$("t2").textContent=d.t2;$("hint").textContent=d.hint;
+ $("wa").textContent=d.wa;$("t3").textContent=d.t3;$("foot").textContent=d.foot;$("lang").textContent=lang==="ar"?"English":"العربية";
+ var sw=$("sw");sw.innerHTML="";
+ COL.forEach(function(c,i){var b=document.createElement("button");b.style.background="#"+c.toString(16).padStart(6,"0");b.setAttribute("aria-label",d.cols[i]);b.setAttribute("aria-pressed",String(i===ci));if(i===ci)b.className="on";b.onclick=function(){ci=i;mat.color.setHex(COL[i]);render()};sw.appendChild(b)});
+ var n=document.createElement("span");n.id="cname";n.textContent=d.cols[ci];sw.appendChild(n);
+ $("grid").innerHTML=d.ps.map(function(p){return '<div class="p"><b>'+p[0]+'</b><span>'+p[1]+'</span><span class="price">'+p[2]+'</span></div>'}).join("");
+ $("wa").href="https://wa.me/"+PHONE+"?text="+encodeURIComponent(d.msg+d.cols[ci]);
+}
+if(!window.THREE){render();$("hint").textContent=lang==="ar"?"تعذّر تحميل العرض ثلاثي الأبعاد.":"3D preview unavailable.";return}
+// ---- 3D ----
+var cv=$("c"),mat=new THREE.MeshStandardMaterial({color:COL[0],roughness:.9});
+var legM=new THREE.MeshStandardMaterial({color:0xb08d57,roughness:.35,metalness:.7});
+var R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
+var S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(35,1,.1,50);
+S.add(new THREE.HemisphereLight(0xffffff,0x6a5c4c,.5));
+var L=new THREE.DirectionalLight(0xffffff,.7);L.position.set(4,7,5);L.castShadow=true;L.shadow.mapSize.set(1024,1024);L.shadow.camera.left=-6;L.shadow.camera.right=6;L.shadow.camera.top=6;L.shadow.camera.bottom=-6;L.shadow.bias=-.0005;S.add(L);
+var F=new THREE.DirectionalLight(0xffe8d0,.18);F.position.set(-5,3,2);S.add(F);
+function rg(w,h,d,r){r=Math.min(r,w/2*.95,h/2*.95,d/2*.95);var g=new THREE.BoxGeometry(w,h,d,10,10,10),p=g.attributes.position,n=g.attributes.normal,v=new THREE.Vector3(),c=new THREE.Vector3(),hx=w/2-r,hy=h/2-r,hz=d/2-r;for(var i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.set(Math.max(-hx,Math.min(hx,v.x)),Math.max(-hy,Math.min(hy,v.y)),Math.max(-hz,Math.min(hz,v.z)));v.sub(c).normalize();n.setXYZ(i,v.x,v.y,v.z);p.setXYZ(i,c.x+v.x*r,c.y+v.y*r,c.z+v.z*r)}return g}
+function box(w,h,d,x,y,z,m,r){var o=new THREE.Mesh(rg(w,h,d,r||.14),m||mat);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;S.add(o);return o}
+box(4.0,.5,1.4,0,.6,0,null,.18);            // base
+[-1.1,0,1.1].forEach(function(x){box(1.06,.36,1.05,x,.99,.12,null,.15);var b=box(1.02,.75,.3,x,1.4,-.2,null,.13);b.rotation.x=-.2}); // seats
+box(4.0,1.0,.4,0,1.3,-.52,null,.16);         // back
+box(.34,1.0,1.4,-1.83,.9,0,null,.15);box(.34,1.0,1.4,1.83,.9,0,null,.15); // arms
+[[-1.5,-.5],[1.5,-.5],[-1.5,.5],[1.5,.5]].forEach(function(p){box(.12,.42,.12,p[0]*1.28,.21,p[1],legM,.05)});
+var fl=new THREE.Mesh(new THREE.PlaneGeometry(14,14),new THREE.ShadowMaterial({opacity:.18}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;S.add(fl);
+var th=.6,ph=.35,dist=9,drag=false,lx=0,ly=0,auto=!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+function size(){var w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();dist=Math.max(6.2,7.6/(w/h))}
+window.addEventListener("resize",size);
+cv.addEventListener("pointerdown",function(e){drag=true;auto=false;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener("pointermove",function(e){if(!drag)return;th-=(e.clientX-lx)*.01;ph=Math.max(.05,Math.min(1.1,ph+(e.clientY-ly)*.006));lx=e.clientX;ly=e.clientY});
+cv.addEventListener("pointerup",function(){drag=false});cv.addEventListener("pointercancel",function(){drag=false});
+function loop(){requestAnimationFrame(loop);if(auto)th+=.004;
+ cam.position.set(Math.sin(th)*Math.cos(ph)*dist,1+Math.sin(ph)*dist,Math.cos(th)*Math.cos(ph)*dist);cam.lookAt(0,.9,0);R.render(S,cam)}
+$("lang").onclick=function(){lang=lang==="en"?"ar":"en";render()};
+render();size();loop();
+})();
+</script>
+</body>
+</html>
